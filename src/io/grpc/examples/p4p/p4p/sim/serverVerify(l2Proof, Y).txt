@@ -1,0 +1,78 @@
+public main(){
+        for(int i = 0; i < x.length; i++) {
+        // First make sure the checksums are computed correctly:
+        if(x[i] != Util.mod(Util.innerProduct(c[i], u), F)) {
+        // We are doing server
+        return false;
+        }
+        // Now check if the modular correctors, the Bs, are computed correctly
+        if(!B[i].equals(tcProofs[i].getCommitment()[0])) {
+        return false;
+        }
+        // Check the 3-way proofs
+        if(!tc.verify(tcProofs[i])) {
+        return false;
+        }
+        X[i] =
+        cm.commit(new BigInteger(new Long(x[i]).toString()).mod(q),
+        // The checksum
+        r[i]);            // The randomness
+        S[i] = X[i].multiply(B[i]).mod(p).multiply(Y[i]).mod(p);
+        }
+
+        // Next check that the sum of squares does not have excessive bits:
+        if(bcProofs.length > Integer.toBinaryString(c.length).length()+2*l) {
+        System.out.println("Sum of squares has too many bits: "
+        + bcProofs.length
+        + ", the limit is "
+        + (Integer.toBinaryString(c.length).length()+2*l));
+        return false;
+        }
+
+        // Check the square proofs:
+        SquareCommitment sc = new SquareCommitment(g, h);
+        for(int i = 0; i < scProofs.length; i++) {
+        // 1st: check that the square commitment encodes the correct
+        if(!scProofs[i].getCommitment()[0].equals(S[i])) {
+        return false;
+        }
+        // 2nd: Square Verification
+        if(!sc.verify(scProofs[i])) {
+        return false;
+        }
+        }
+
+        BigInteger z = BigInteger.ONE;
+        for(int i = 0; i < scProofs.length; i++) {
+        z = z.multiply(scProofs[i].getCommitment()[1]).mod(p);   // *= B
+        }
+        z = z.multiply(z).mod(p);    // commitment[0] actually stores 2X
+// Commitment to square sum wasn't computed correctly
+        if(!l2Proof.getCommitment()[0].equals(z)) {
+        return false;
+        }
+
+        // Then check each bits
+        BitCommitment bc = new BitCommitment(g, h);
+        BigInteger zz = BigInteger.ONE;
+
+        DEBUG("Checking  " + bcProofs.length + " bit commitments");
+
+        BigInteger ZZ = BigInteger.ONE;
+        for(int i = 0; i < bcProofs.length; i++) {
+        if(!bc.verify(bcProofs[i])) {
+        System.out.println("Bit commitment verification " + i
+        + " failed.");
+        return false;
+        }
+        BigInteger e = BigInteger.ZERO.setBit(i);
+
+        NativeBigInteger Z =
+        (NativeBigInteger)bcProofs[i].getCommitment()[0];
+        ZZ = ZZ.multiply(Z.modPow(e, p)).mod(p);
+        }
+        // Homomorphism does not hold
+        if(!ZZ.equals(z)) {
+        return false;
+        }
+        }
